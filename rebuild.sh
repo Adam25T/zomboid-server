@@ -1,86 +1,70 @@
 #!/bin/bash
 set -e
 
+CONTAINER_NAME="zomboid"
+IMAGE_NAME="pz-lgsm-server"
+VOLUME_PATH="/docker-volumes/project-zomboid/server-files"
+
 echo "============================================"
 echo "🧼 Wiping and Rebuilding Project Zomboid Server"
 echo "============================================"
-echo
 
-# ---- CONFIG ----
-CONTAINER_NAME="zomboid"
-IMAGE_NAME="pz-lgsm-server"
-VOLUME_PATH="/docker-volumes/project-zomboid"
-USER_ID=1000
-GROUP_ID=1000
-COMPOSE_FILE="./docker-compose.yml"
-
-# ---- STOP & REMOVE OLD CONTAINERS ----
-echo "🧩 Stopping and removing existing containers..."
+# Stop & remove old container
 docker-compose down || true
 docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
 
-# ---- REMOVE OLD IMAGE ----
-echo "🧱 Removing old local Docker image..."
+# Remove old image
 docker rmi "$IMAGE_NAME" || true
 
-# ---- DELETE OLD VOLUMES ----
-echo "🧹 Deleting old server data and configs..."
-sudo rm -rf "$VOLUME_PATH"
-
-# ---- PRUNE UNUSED DOCKER DATA ----
-echo "🗑️ Cleaning up unused Docker volumes..."
-docker volume prune -f
-
-# ---- RECREATE CLEAN DIRECTORY STRUCTURE ----
-echo "📂 Recreating directories..."
-sudo mkdir -p "$VOLUME_PATH/server-files"
-sudo mkdir -p "$VOLUME_PATH/config-lgsm"
-
-# ---- FIX OWNERSHIP ON HOST VOLUMES ----
-echo "🔑 Setting correct ownership for linuxgsm user..."
-sudo chown -R $USER_ID:$GROUP_ID "$VOLUME_PATH"
-
-# ---- VERIFY DOCKER FILES ----
-if [ ! -f "$COMPOSE_FILE" ]; then
-  echo "⚠️ docker-compose.yml not found!"
-  exit 1
-fi
-if [ ! -f "./Dockerfile" ]; then
-  echo "⚠️ Dockerfile not found!"
-  exit 1
+# Optional world wipe
+if [ "$1" == "--wipe-world" ]; then
+  echo "🗺️ Wiping world save files..."
+  sudo rm -rf "$VOLUME_PATH/Zomboid/Saves/Multiplayer"/*
+  sudo rm -rf "$VOLUME_PATH/Zomboid/Saves/Survival"/*
+  echo "✅ World save data wiped, configs retained."
 fi
 
-# ---- BUILD IMAGE ----
-echo "🐋 Building custom LGSM Project Zomboid image..."
+# Remove old server files
+echo "🧹 Deleting old server files..."
+sudo mkdir -p "$VOLUME_PATH"
+sudo chown -R 1000:1000 "$VOLUME_PATH"
+
+# Build image
+echo "🐋 Building Docker image..."
 docker-compose build --no-cache
 
-# ---- START CONTAINER ----
+# Start container
 echo "🚀 Starting container..."
 docker-compose up -d
 
-# ---- WAIT FOR INITIALIZATION ----
-echo "⏳ Waiting 10s for container to initialize..."
+# Wait for container to initialize
 sleep 10
 
-# ---- INSTALL LGSM PZServer INSIDE CONTAINER ----
+# Install Project Zomboid server inside container
 echo "🛠️ Installing Project Zomboid server inside container..."
 docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
-  # Ensure lgsm/data exists inside container (not on host-mounted config)
-  mkdir -p /home/linuxgsm/lgsm/data
   ./linuxgsm.sh pzserver
 "
 
-echo "✅ Rebuild complete!"
+# Update LGSM inside container
+echo "🔄 Updating LGSM..."
+docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
+  ./pzserver update-lgsm
+"
+
+# Start Project Zomboid server
+echo "▶️ Starting Project Zomboid server..."
+docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
+  ./pzserver start
+"
+
+echo "✅ Project Zomboid server is fully running!"
 echo
 echo "Use inside container:"
 echo "  docker exec -it -u linuxgsm $CONTAINER_NAME bash"
-echo "  ./pzserver update-lgsm"
 echo "  ./pzserver details"
-
-# ---- OPTIONAL: WORLD WIPE MODE ----
-if [ "$1" == "--wipe-world" ]; then
-  echo "🗺️ Wiping world save files only..."
-  sudo rm -rf "$VOLUME_PATH/server-files/Zomboid/Saves/Multiplayer"/*
-  sudo rm -rf "$VOLUME_PATH/server-files/Zomboid/Saves/Survival"/*
-  echo "✅ World save data wiped, configs retained."
-fi
+echo "  ./pzserver stop"
+echo
+echo "============================================"
+echo "✨ Done!"
+echo "============================================"

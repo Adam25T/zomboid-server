@@ -20,8 +20,8 @@ services:
       - '27015:27015'
 
     volumes:
+      # Only server files are mounted persistently
       - /docker-volumes/project-zomboid/server-files:/home/linuxgsm/Zomboid
-      - /docker-volumes/project-zomboid/config-lgsm:/home/linuxgsm/lgsm/config-lgsm
 
     environment:
       PZ_SERVER_NAME: "Adam&Friends"
