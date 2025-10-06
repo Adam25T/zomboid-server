@@ -58,4 +58,9 @@ echo "✅ Project Zomboid server is ready!"
 echo
 echo "📂 Data directory: $DATA_DIR"
 echo
-echo "Use
+echo "Use the following commands to manage the server:"
+echo "  docker exec -it --user linuxgsm $CONTAINER_NAME ./pzserver details"
+echo "  docker exec -it --user linuxgsm $CONTAINER_NAME ./pzserver update"
+echo "  docker exec -it --user linuxgsm $CONTAINER_NAME ./pzserver start"
+echo
+echo "⚠️ Use ./rebuild.sh --wipe-world to only wipe world saves without deleting configs."
