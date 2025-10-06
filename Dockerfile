@@ -1,4 +1,4 @@
-# Use Ubuntu 22.04 as base
+# Base image
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -16,11 +16,13 @@ RUN useradd -m linuxgsm
 USER linuxgsm
 WORKDIR /home/linuxgsm
 
-# Download LinuxGSM script
-RUN wget -O linuxgsm.sh https://linuxgsm.sh && chmod +x linuxgsm.sh
+# Force IPv4 when downloading LinuxGSM
+RUN wget -4 -O linuxgsm.sh https://linuxgsm.sh && chmod +x linuxgsm.sh
+
+# Increase curl timeout for all LGSM operations
+ENV LGSM_CURL_OPTIONS="--connect-timeout 30 --max-time 300"
 
 # Expose Project Zomboid ports
 EXPOSE 8766-8767/udp 16261-16278/udp 27015/tcp
 
-# Use bash by default
 ENTRYPOINT ["/bin/bash"]
