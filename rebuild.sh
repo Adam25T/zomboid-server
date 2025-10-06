@@ -2,7 +2,7 @@
 set -e
 
 echo "============================================"
-echo "🧼 Wiping and Rebuilding Project Zomboid Server (Custom LGSM Docker Build)"
+echo "🧼 Wiping and Rebuilding Project Zomboid Server"
 echo "============================================"
 echo
 
@@ -28,7 +28,7 @@ echo "🧹 Deleting old server data and configs..."
 sudo rm -rf "$VOLUME_PATH"
 
 # ---- PRUNE UNUSED DOCKER DATA ----
-echo "🗑️  Cleaning up unused Docker volumes..."
+echo "🗑️ Cleaning up unused Docker volumes..."
 docker volume prune -f
 
 # ---- RECREATE CLEAN DIRECTORY STRUCTURE ----
@@ -42,32 +42,36 @@ if [ ! -f "$COMPOSE_FILE" ]; then
   echo "⚠️ docker-compose.yml not found in current directory!"
   exit 1
 fi
-
 if [ ! -f "./Dockerfile" ]; then
   echo "⚠️ Dockerfile not found in current directory!"
   exit 1
 fi
 
-# ---- BUILD IMAGE (host network to fix DNS/timeouts) ----
-echo "🐋 Building custom LGSM Project Zomboid image with host network..."
-docker-compose build --no-cache --build-arg NETWORK_MODE=host
+# ---- BUILD IMAGE ----
+echo "🐋 Building custom LGSM Project Zomboid image..."
+docker-compose build --no-cache
 
 # ---- START CONTAINER ----
-echo "🚀 Starting container with host network..."
-docker-compose up -d --build --no-deps
+echo "🚀 Starting container..."
+docker-compose up -d
 
-echo "⏳ Waiting for LGSM to initialize and create config files..."
-sleep 45
+echo "⏳ Waiting 10s for container to initialize..."
+sleep 10
 
-echo
-echo "✅ Project Zomboid server rebuilt successfully!"
-echo "Config directory: $VOLUME_PATH/server-files/Zomboid/Server/"
-echo
-echo "Use these commands to manage the server:"
+# ---- INSTALL LGSM PZServer inside container ----
+echo "🛠️ Installing Project Zomboid server inside container..."
+docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "./linuxgsm.sh pzserver"
+
+echo "✅ Rebuild complete!"
+echo "Use inside container:"
 echo "  docker exec -it -u linuxgsm $CONTAINER_NAME bash"
-echo "  ./pzserver start"
+echo "  ./pzserver update-lgsm"
 echo "  ./pzserver details"
-echo
-echo "============================================"
-echo "✨ Done!"
-echo "============================================"
+
+# ---- OPTIONAL: WORLD WIPE MODE ----
+if [ "$1" == "--wipe-world" ]; then
+  echo "🗺️ Wiping world save files only..."
+  sudo rm -rf "$VOLUME_PATH/server-files/Zomboid/Saves/Multiplayer"/*
+  sudo rm -rf "$VOLUME_PATH/server-files/Zomboid/Saves/Survival"/*
+  echo "✅ World save data wiped, configs retained."
+fi
