@@ -20,8 +20,12 @@ services:
       - '27015:27015'
 
     volumes:
-      # Only server files are mounted persistently
+      # Caches home dir, including lgsm/steamcmd/etc
+      - lgsm-cache:/home/linuxgsm
+      # Caches Zomboid Server Install (settings, world) for easy backups
       - /docker-volumes/project-zomboid/server-files:/home/linuxgsm/Zomboid
+      # LGSM Configuration
+      - /docker-volumes/project-zomboid/config-lgsm:/home/linuxgsm/lgsm/config-lgsm/pzserver
 
     environment:
       PZ_SERVER_NAME: "Adam&Friends"
