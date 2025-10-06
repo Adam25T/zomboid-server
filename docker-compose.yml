@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  pzserver:
+    build: .
+    container_name: zomboid
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+    # --- DNS fixes for reliable GitHub/Bitbucket access ---
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+    # --- Port mappings for Project Zomboid ---
+    ports:
+      - '8766-8767:8766-8767/udp'
+      - '16261-16278:16261-16278/udp'
+      - '27015:27015'
+
+    # --- Persistent volumes ---
+    volumes:
+      # Persistent server files (worlds, saves, logs)
+      - /docker-volumes/project-zomboid/server-files:/home/linuxgsm/Zomboid
+      # Persistent LGSM configs
+      - /docker-volumes/project-zomboid/config-lgsm:/home/linuxgsm/lgsm/config-lgsm
+
+    # --- Environment variables ---
+    environment:
+      PZ_SERVER_NAME: "Adam&Friends"
+      PZ_ADMIN_PASSWORD: "admin"
+      PZ_SERVER_PASSWORD: "Greg"
+      PZ_MAX_PLAYERS: "32"
+
+    # --- Increase ulimits for LGSM/game ---
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
