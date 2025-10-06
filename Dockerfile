@@ -12,15 +12,15 @@ RUN apt-get update && apt-get install -y \
 # Create linuxgsm user
 RUN useradd -m linuxgsm
 
-# Switch to linuxgsm
+# Switch to linuxgsm user
 USER linuxgsm
 WORKDIR /home/linuxgsm
 
-# Download LinuxGSM script from GitHub
-RUN wget -4 -O linuxgsm.sh https://raw.githubusercontent.com/linuxgsm/linuxgsm/master/linuxgsm.sh \
+# Download LinuxGSM script and make it executable
+RUN wget -4 -O linuxgsm.sh https://raw.githubusercontent.com/GameServerManagers/LinuxGSM/master/linuxgsm.sh \
     && chmod +x linuxgsm.sh
 
-# Increase curl timeout for all LGSM operations
+# Set curl options to increase timeout
 ENV LGSM_CURL_OPTIONS="--connect-timeout 30 --max-time 300"
 
 # Expose Project Zomboid ports
