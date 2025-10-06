@@ -16,8 +16,9 @@ RUN useradd -m linuxgsm
 USER linuxgsm
 WORKDIR /home/linuxgsm
 
-# Force IPv4 when downloading LinuxGSM
-RUN wget -4 -O linuxgsm.sh https://linuxgsm.sh && chmod +x linuxgsm.sh
+# Download LinuxGSM script from GitHub
+RUN wget -4 -O linuxgsm.sh https://raw.githubusercontent.com/linuxgsm/linuxgsm/master/linuxgsm.sh \
+    && chmod +x linuxgsm.sh
 
 # Increase curl timeout for all LGSM operations
 ENV LGSM_CURL_OPTIONS="--connect-timeout 30 --max-time 300"
