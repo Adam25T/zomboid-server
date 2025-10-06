@@ -1,20 +1,61 @@
 #!/bin/bash
 set -e
 
-echo "🧼 Stopping container..."
+# ----------------------
+# Config
+# ----------------------
+CONTAINER_NAME="zomboid"
+DATA_DIR="/docker-volumes/project-zomboid/data"
+
+# Optional: wipe world saves only (keep configs)
+WIPE_WORLD=false
+if [[ "$1" == "--wipe-world" ]]; then
+    WIPE_WORLD=true
+fi
+
+# ----------------------
+# Stop container
+# ----------------------
+echo "🛑 Stopping container..."
 docker-compose down
 
-echo "🗑️ Deleting old server data..."
-sudo rm -rf /docker-volumes/project-zomboid/data/*
+# ----------------------
+# Wipe data if not preserving configs
+# ----------------------
+if [ "$WIPE_WORLD" = true ]; then
+    echo "🗺️ Wiping world saves only..."
+    sudo rm -rf "$DATA_DIR/serverfiles/Zomboid/Saves/Multiplayer"/*
+    sudo rm -rf "$DATA_DIR/serverfiles/Zomboid/Saves/Survival"/*
+else
+    echo "🗑️ Deleting all server data..."
+    sudo rm -rf "$DATA_DIR"/*
+fi
 
-echo "🚀 Starting fresh container..."
+# ----------------------
+# Fix permissions
+# ----------------------
+echo "🔧 Fixing ownership and permissions..."
+sudo mkdir -p "$DATA_DIR"
+sudo chown -R 1000:1000 "$DATA_DIR"
+sudo chmod -R u+rwX "$DATA_DIR"
+
+# ----------------------
+# Start container
+# ----------------------
+echo "🚀 Starting container..."
 docker-compose up -d
 
-echo "⏳ Waiting for Project Zomboid server to install..."
+# ----------------------
+# Wait for LGSM to initialize
+# ----------------------
+echo "⏳ Waiting 60 seconds for LGSM to install and initialize..."
 sleep 60
 
-echo "✅ Project Zomboid server rebuilt successfully!"
-echo "Use the following commands to manage the server:"
-echo "  docker exec -it --user linuxgsm zomboid ./pzserver details"
-echo "  docker exec -it --user linuxgsm zomboid ./pzserver update"
-echo "  docker exec -it --user linuxgsm zomboid ./pzserver start"
+# ----------------------
+# Status output
+# ----------------------
+echo "✅ Project Zomboid server is ready!"
+echo
+echo "📂 Data directory: $DATA_DIR"
+echo
+echo "Use
