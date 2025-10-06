@@ -32,18 +32,21 @@ echo "🗑️ Cleaning up unused Docker volumes..."
 docker volume prune -f
 
 # ---- RECREATE CLEAN DIRECTORY STRUCTURE ----
-echo "📂 Recreating directories with correct ownership..."
+echo "📂 Recreating directories..."
 sudo mkdir -p "$VOLUME_PATH/server-files"
 sudo mkdir -p "$VOLUME_PATH/config-lgsm"
+
+# ---- FIX OWNERSHIP FOR HOST VOLUMES ----
+echo "🔑 Setting correct ownership for linuxgsm..."
 sudo chown -R $USER_ID:$GROUP_ID "$VOLUME_PATH"
 
 # ---- VERIFY DOCKER FILES ----
 if [ ! -f "$COMPOSE_FILE" ]; then
-  echo "⚠️ docker-compose.yml not found in current directory!"
+  echo "⚠️ docker-compose.yml not found!"
   exit 1
 fi
 if [ ! -f "./Dockerfile" ]; then
-  echo "⚠️ Dockerfile not found in current directory!"
+  echo "⚠️ Dockerfile not found!"
   exit 1
 fi
 
@@ -55,14 +58,19 @@ docker-compose build --no-cache
 echo "🚀 Starting container..."
 docker-compose up -d
 
+# ---- WAIT FOR INITIALIZATION ----
 echo "⏳ Waiting 10s for container to initialize..."
 sleep 10
 
-# ---- INSTALL LGSM PZServer inside container ----
+# ---- INSTALL LGSM PZServer INSIDE CONTAINER ----
 echo "🛠️ Installing Project Zomboid server inside container..."
-docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "./linuxgsm.sh pzserver"
+docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
+  mkdir -p /home/linuxgsm/lgsm/data && \
+  ./linuxgsm.sh pzserver
+"
 
 echo "✅ Rebuild complete!"
+echo
 echo "Use inside container:"
 echo "  docker exec -it -u linuxgsm $CONTAINER_NAME bash"
 echo "  ./pzserver update-lgsm"
