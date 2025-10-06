@@ -36,8 +36,8 @@ echo "📂 Recreating directories..."
 sudo mkdir -p "$VOLUME_PATH/server-files"
 sudo mkdir -p "$VOLUME_PATH/config-lgsm"
 
-# ---- FIX OWNERSHIP FOR HOST VOLUMES ----
-echo "🔑 Setting correct ownership for linuxgsm..."
+# ---- FIX OWNERSHIP ON HOST VOLUMES ----
+echo "🔑 Setting correct ownership for linuxgsm user..."
 sudo chown -R $USER_ID:$GROUP_ID "$VOLUME_PATH"
 
 # ---- VERIFY DOCKER FILES ----
@@ -65,7 +65,8 @@ sleep 10
 # ---- INSTALL LGSM PZServer INSIDE CONTAINER ----
 echo "🛠️ Installing Project Zomboid server inside container..."
 docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
-  mkdir -p /home/linuxgsm/lgsm/data && \
+  # Ensure lgsm/data exists inside container (not on host-mounted config)
+  mkdir -p /home/linuxgsm/lgsm/data
   ./linuxgsm.sh pzserver
 "
 
