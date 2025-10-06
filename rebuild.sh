@@ -1,70 +1,20 @@
 #!/bin/bash
 set -e
 
-CONTAINER_NAME="zomboid"
-IMAGE_NAME="pz-lgsm-server"
-VOLUME_PATH="/docker-volumes/project-zomboid/server-files"
+echo "🧼 Stopping container..."
+docker-compose down
 
-echo "============================================"
-echo "🧼 Wiping and Rebuilding Project Zomboid Server"
-echo "============================================"
+echo "🗑️ Deleting old server data..."
+sudo rm -rf /docker-volumes/project-zomboid/data/*
 
-# Stop & remove old container
-docker-compose down || true
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
-
-# Remove old image
-docker rmi "$IMAGE_NAME" || true
-
-# Optional world wipe
-if [ "$1" == "--wipe-world" ]; then
-  echo "🗺️ Wiping world save files..."
-  sudo rm -rf "$VOLUME_PATH/Zomboid/Saves/Multiplayer"/*
-  sudo rm -rf "$VOLUME_PATH/Zomboid/Saves/Survival"/*
-  echo "✅ World save data wiped, configs retained."
-fi
-
-# Remove old server files
-echo "🧹 Deleting old server files..."
-sudo mkdir -p "$VOLUME_PATH"
-sudo chown -R 1000:1000 "$VOLUME_PATH"
-
-# Build image
-echo "🐋 Building Docker image..."
-docker-compose build --no-cache
-
-# Start container
-echo "🚀 Starting container..."
+echo "🚀 Starting fresh container..."
 docker-compose up -d
 
-# Wait for container to initialize
-sleep 10
+echo "⏳ Waiting for Project Zomboid server to install..."
+sleep 60
 
-# Install Project Zomboid server inside container
-echo "🛠️ Installing Project Zomboid server inside container..."
-docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
-  ./linuxgsm.sh pzserver
-"
-
-# Update LGSM inside container
-echo "🔄 Updating LGSM..."
-docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
-  ./pzserver update-lgsm
-"
-
-# Start Project Zomboid server
-echo "▶️ Starting Project Zomboid server..."
-docker exec -u linuxgsm -it $CONTAINER_NAME bash -c "
-  ./pzserver start
-"
-
-echo "✅ Project Zomboid server is fully running!"
-echo
-echo "Use inside container:"
-echo "  docker exec -it -u linuxgsm $CONTAINER_NAME bash"
-echo "  ./pzserver details"
-echo "  ./pzserver stop"
-echo
-echo "============================================"
-echo "✨ Done!"
-echo "============================================"
+echo "✅ Project Zomboid server rebuilt successfully!"
+echo "Use the following commands to manage the server:"
+echo "  docker exec -it --user linuxgsm zomboid ./pzserver details"
+echo "  docker exec -it --user linuxgsm zomboid ./pzserver update"
+echo "  docker exec -it --user linuxgsm zomboid ./pzserver start"
